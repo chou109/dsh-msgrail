@@ -79,8 +79,9 @@ Requires: DeepSeek Harness web profile (`dsh web`), rc.6 line. No build toolchai
 
 Tell your AI agent:
 
-> Please deploy the MsgRail plugin from https://github.com/chou109/dsh-msgrail.git to my
-> DeepSeek Harness web profile. Follow the "If you are an AI, read this" section of the
+> Please deploy the MsgRail plugin from https://github.com/chou109/dsh-msgrail.git
+> (or the Gitee mirror, faster in mainland China: https://gitee.com/chill109/dsh-msgrail.git)
+> to my DeepSeek Harness web profile. Follow the "If you are an AI, read this" section of the
 > README exactly.
 
 The AI section below contains the full deployment, verification and debugging instructions.

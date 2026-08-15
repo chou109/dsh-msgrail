@@ -75,7 +75,8 @@
 
 直接对你的 AI 助手说：
 
-> 请把 https://github.com/chou109/dsh-msgrail.git 仓库里的 MsgRail 插件部署到我的
+> 请把 https://github.com/chou109/dsh-msgrail.git（国内更快可用 Gitee 镜像：
+> https://gitee.com/chill109/dsh-msgrail.git）仓库里的 MsgRail 插件部署到我的
 > DeepSeek Harness web profile。严格按照 README 中"如果你是 AI 请看"这一节执行。
 
 下面"如果你是 AI 请看"一节包含完整的部署、验证与调试说明。

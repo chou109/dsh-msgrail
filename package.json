@@ -1,0 +1,34 @@
+{
+  "name": "dsh-msgrail",
+  "version": "1.0.0",
+  "description": "MsgRail — a narrow full-history message rail for DeepSeek Harness: one thin horizontal bar per message YOU sent in the current conversation, docked on the left of the chat (all of them, loaded or not); hover a bar for an attached preview, click to jump to that message.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "plugin",
+    "client-plugin",
+    "message",
+    "rail",
+    "msgrail"
+  ],
+  "license": "MIT"
+}

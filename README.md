@@ -14,9 +14,9 @@
 
 > Demo captures from `dsh web` (light theme), stored in `docs/screenshots/`.
 
-| The message rail | Hover preview (adaptive) |
+| The message rail | Message example |
 |---|---|
-| ![The message rail](docs/screenshots/screenshot1.png) | ![Hover preview](docs/screenshots/screenshot2.png) |
+| ![The message rail](docs/screenshots/screenshot1.png) | ![Message example](docs/screenshots/screenshot3.png) |
 
 *`docs/screenshots/` is created empty on purpose — drop your captures in before publishing.*
 

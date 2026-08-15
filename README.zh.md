@@ -12,13 +12,11 @@
 
 ## 展示图
 
-> 把截图放到 `docs/screenshots/` 目录，并在下方引用。
+> `dsh web`（亮色主题）实拍演示图，存放在 `docs/screenshots/`。
 
-| 总览（轨道） | 悬停预览（自适应） |
+| 消息轨道 | 悬停预览（自适应） |
 |---|---|
-| ![总览](docs/screenshots/overview.png) | ![预览](docs/screenshots/preview.png) |
-
-*`docs/screenshots/` 目录刻意留空——发布前放入你的截图即可。*
+| ![消息轨道](docs/screenshots/screenshot1.png) | ![悬停预览](docs/screenshots/screenshot2.png) |
 
 ---
 
@@ -72,10 +70,10 @@
 
 ## 怎么让 AI 帮你部署
 
-把整个仓库拷到机器上，然后对你的 AI 助手说：
+直接对你的 AI 助手说：
 
-> 请把本仓库（dsh-msgrail / MsgRail）这个插件部署到我的 DeepSeek Harness web profile。
-> 严格按照 README 中"如果你是 AI 请看"这一节执行。
+> 请把 https://github.com/chou109/dsh-msgrail.git 仓库里的 MsgRail 插件部署到我的
+> DeepSeek Harness web profile。严格按照 README 中"如果你是 AI 请看"这一节执行。
 
 下面"如果你是 AI 请看"一节包含完整的部署、验证与调试说明。
 

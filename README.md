@@ -12,11 +12,11 @@
 
 ## Screenshots
 
-> Place showcase screenshots in `docs/screenshots/` and reference them here.
+> Demo captures from `dsh web` (light theme), stored in `docs/screenshots/`.
 
-| Overview (the rail) | Hover preview (adaptive) |
+| The message rail | Hover preview (adaptive) |
 |---|---|
-| ![Overview](docs/screenshots/overview.png) | ![Preview](docs/screenshots/preview.png) |
+| ![The message rail](docs/screenshots/screenshot1.png) | ![Hover preview](docs/screenshots/screenshot2.png) |
 
 *`docs/screenshots/` is created empty on purpose — drop your captures in before publishing.*
 
@@ -76,10 +76,11 @@ Requires: DeepSeek Harness web profile (`dsh web`), rc.6 line. No build toolchai
 
 ## How to let an AI deploy it
 
-Copy the repository to the machine, then tell your AI agent:
+Tell your AI agent:
 
-> Please deploy the plugin in this repository (dsh-msgrail / MsgRail) for my DeepSeek
-> Harness web profile. Follow the "If you are an AI, read this" section of the README exactly.
+> Please deploy the MsgRail plugin from https://github.com/chou109/dsh-msgrail.git to my
+> DeepSeek Harness web profile. Follow the "If you are an AI, read this" section of the
+> README exactly.
 
 The AI section below contains the full deployment, verification and debugging instructions.
 

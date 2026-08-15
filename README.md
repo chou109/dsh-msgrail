@@ -6,7 +6,10 @@
 
 > 中文说明见 [README.zh.md](README.zh.md)
 
-**Repository / 仓库**: <https://github.com/chou109/dsh-msgrail.git>
+**Repository / 仓库**:
+
+- GitHub: <https://github.com/chou109/dsh-msgrail.git>
+- Gitee (mainland-China mirror — faster there): <https://gitee.com/chill109/dsh-msgrail.git>
 
 ---
 

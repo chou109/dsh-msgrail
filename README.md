@@ -16,9 +16,7 @@
 
 | The message rail | Message example |
 |---|---|
-| ![The message rail](docs/screenshots/screenshot1.png) | ![Message example](docs/screenshots/screenshot3.png) |
-
-*`docs/screenshots/` is created empty on purpose — drop your captures in before publishing.*
+| ![The message rail](docs/screenshots/screenshot.png) | ![Message example](docs/screenshots/screenshot3.png) |
 
 ---
 

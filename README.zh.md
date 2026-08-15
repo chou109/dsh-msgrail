@@ -16,7 +16,7 @@
 
 | 消息轨道 | 悬停预览（自适应） |
 |---|---|
-| ![消息轨道](docs/screenshots/screenshot1.png) | ![悬停预览](docs/screenshots/screenshot2.png) |
+| ![消息轨道](docs/screenshots/screenshot.png) | ![悬停预览](docs/screenshots/screenshot2.png) |
 
 ---
 

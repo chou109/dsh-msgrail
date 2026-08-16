@@ -55,7 +55,9 @@ Requires: DeepSeek Harness web profile (`dsh web`), rc.6 line. No build toolchai
 
    The script adds a `shell.history` grid column to `@deepseek-ai/dsh-client-ui-layout`
    (sized by `var(--dsh-history-width)`, default `0px`, so an uninstalled plugin costs no
-   space). It is idempotent and reports loudly if an anchor no longer matches.
+   space). It is idempotent and reports loudly if an anchor no longer matches. The layout
+   bundle is resolved from `$DSH_HOME` (falling back to `~/.dsh`); pass the path explicitly
+   (`node scripts/patch-layout.mjs <path>`) for non-standard layouts.
 
 2. **Copy the plugin into the profile's node_modules**:
 
@@ -160,7 +162,7 @@ dsh-msgrail/
 
    ```bash
    node scripts/patch-layout.mjs
-   # or with an explicit path:
+   # the default target is resolved from $DSH_HOME (~/.dsh); or pass an explicit path:
    node scripts/patch-layout.mjs "<path>/node_modules/@deepseek-ai/dsh-client-ui-layout/lib/client.js"
    ```
 

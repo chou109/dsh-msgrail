@@ -51,7 +51,8 @@
 
    脚本为 `@deepseek-ai/dsh-client-ui-layout` 增加 `shell.history` 网格列（宽度由
    `var(--dsh-history-width)` 控制，默认 `0px`，插件未安装时不占空间）；幂等，锚点不匹配会
-   明确报错。
+   明确报错。布局 bundle 按 `$DSH_HOME`（默认 `~/.dsh`）解析；非常规布局可显式传路径
+   （`node scripts/patch-layout.mjs <路径>`）。
 
 2. **把插件复制进 profile 的 node_modules**：
 
@@ -145,7 +146,7 @@ dsh-msgrail/
 
    ```bash
    node scripts/patch-layout.mjs
-   # 或显式传路径：
+   # 默认按 $DSH_HOME（~/.dsh）解析；非常规布局可显式传路径：
    node scripts/patch-layout.mjs "<路径>/node_modules/@deepseek-ai/dsh-client-ui-layout/lib/client.js"
    ```
 

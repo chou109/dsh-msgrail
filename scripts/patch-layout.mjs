@@ -3,7 +3,7 @@
 // Patches @deepseek-ai/dsh-client-ui-layout so AppFrame renders an extra
 // `shell.history` grid column between the sidebar and the conversation:
 //   - the grid track is sized with var(--dsh-history-width, 0px) (the
-//     dsh-msgrail stylesheet sets it to 264px; an uninstalled plugin
+//     dsh-msgrail stylesheet sets it to 44px; an uninstalled plugin
 //     costs no space);
 //   - a `shell.history` child slot (single, root scope) is declared;
 //   - a wrapper <div class="dsh-layout-historyCol"> renders the slot between
@@ -13,11 +13,42 @@
 //
 // Usage:
 //   node patch-layout.mjs [path-to-dsh-client-ui-layout/lib/client.js]
-import { readFileSync, writeFileSync } from "node:fs";
+//
+// Target resolution: an explicit path argument wins; otherwise the layout
+// bundle is resolved from $DSH_HOME (falling back to ~/.dsh):
+//   $DSH_HOME/profiles/node_modules/@deepseek-ai/dsh-client-ui-layout/lib/client.js
+// No machine-specific path is hard-coded.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
-const target =
-  process.argv[2] ||
-  "C:\\Users\\周超\\AppData\\Local\\npm-cache\\_npx\\1e7f6d9597241db0\\node_modules\\@deepseek-ai\\dsh-client-ui-layout\\lib\\client.js";
+function resolveLayoutTarget() {
+  if (process.argv[2]) return process.argv[2];
+  const home =
+    process.env.DSH_HOME && process.env.DSH_HOME.trim() !== ""
+      ? process.env.DSH_HOME
+      : join(homedir(), ".dsh");
+  const candidates = [
+    join(home, "profiles", "node_modules", "@deepseek-ai", "dsh-client-ui-layout", "lib", "client.js"),
+    join(home, "node_modules", "@deepseek-ai", "dsh-client-ui-layout", "lib", "client.js")
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return candidates[0];
+}
+
+const target = resolveLayoutTarget();
+if (!existsSync(target)) {
+  console.error(
+    "layout bundle not found at: " +
+      target +
+      "\nSet DSH_HOME (or use the default ~/.dsh) so the script can find " +
+      "@deepseek-ai/dsh-client-ui-layout, or pass the explicit path:\n" +
+      "  node patch-layout.mjs <path-to-dsh-client-ui-layout/lib/client.js>"
+  );
+  process.exit(1);
+}
 
 // The idempotency marker matches what the patched host layout actually contains
 // (it predates this package's rename), so it intentionally stays "dsh-session-history".

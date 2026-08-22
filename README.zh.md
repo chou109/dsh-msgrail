@@ -31,7 +31,8 @@
   背景与消息区直接相接。
 - 当前会话中**每条"你发送的消息"对应一根细横线**（AI 回复、自动注入的上下文、干预、命令类
   一律不计入），竖向密集排列并在轨道内**垂直居中**。轨道内没有文字，是你所发消息的纯视觉缩略图。
-- **全量历史**：轨道自己拉取完整会话历史，更早的消息即使还没载入对话窗口也会以横线出现。
+- **全量历史**：轨道直接分页拉取完整会话日志，更早的消息即使还没载入对话窗口也会以横线
+  出现；点击横线时若消息未载入会再按需加载更早消息。
 - **悬停某根横线** → 变长变粗，旁边弹出**预览卡片**（你的原文 + 时间，自动避开屏幕边缘；
   其他插件注入的提示块如粘贴图片的"系统提示"会被隐藏）。**点击横线** → 会话区滚动到这条消息，
   若该消息尚未载入会自动先加载更早消息再跳转。
@@ -41,7 +42,7 @@
 
 ## 手动部署
 
-要求：DeepSeek Harness web profile（`dsh web`），rc.6 版本线；无需构建工具链。
+要求：DeepSeek Harness web profile（`dsh web`），rc.7/rc.8 版本线；无需构建工具链。
 
 1. **给主布局打补丁**（一次性；harness 升级后需重跑）：
 
@@ -96,7 +97,7 @@
 
 ## 任务目标
 
-为 DeepSeek Harness **web** profile（`dsh web`，rc.6 版本线）部署 `dsh-msgrail` 插件。
+为 DeepSeek Harness **web** profile（`dsh web`，rc.7/rc.8 版本线）部署 `dsh-msgrail` 插件。
 交付物：主布局中多出一列 `shell.history` 网格列；一个在该列渲染**窄消息轨道**（当前会话中
 每条用户发送的消息一根横线，悬停预览、点击跳转）的客户端 bundle。
 
@@ -128,11 +129,17 @@ dsh-msgrail/
 - **轨道宽度**：bundle 样式表声明 `:root { --dsh-history-width: 44px }`（卸载时由 loader 的
   样式标签回收自动移除）。悬停预览是 `position: fixed` 卡片，运行时实测尺寸并钳制在视口内
   （右缘溢出翻到左侧、底部溢出上移）。
-- **消息数据——全量历史、只含你自己的消息**：通过 `ctx.sessions.binding(id)?.session` 分页
-  拉取 `session.history({ beforeSeq, maxMessages: 200 })` 直到 `hasMore` 为 false，只为
+- **消息数据——全量历史、只含你自己的消息**：轨道**直接分页拉取完整会话日志**
+  （`session.history({ beforeSeq, maxMessages: 200 })`，经
+  `ctx.sessions.binding(id)?.session`）直到 `hasMore` 为 false，只为
   **`surfaceOp === "append"` 且 `data.source.kind === "user"`** 的 `user/message` 事件生成
   横线（AI 回复、干预、上下文注入、命令类跳过——与会话 UI 的判别条件一致），按 `event.seq`
-  排序。实时更新来自 `session.subscribe` → 250ms 防抖**尾部重取**并按 `seq` 合并。
+  排序。因为是直接翻日志 RPC，索引与对话窗口已加载多少**无关**：更早的消息即使还没载入
+  聊天区也会出现。实时更新来自 `session.subscribe` → 250ms 防抖**尾部重取**并按 `seq` 合并。
+  若未来某版本移除了（类型上 private 的）`session.history` RPC，bundle 会回退为读取会话快照
+  （`session.getSnapshot()` → 已加载窗口）并在快照报告 `hasMore` 时用 `session.loadOlder()`
+  扩展——先等窗口打开再遍历，且实时更新时会重跑遍历，回退路径**不会**再悄悄退化成
+  "只显示已加载消息"。
 - **预览文本**：取内容块的 `text` 字段；以 `[图片附件`、`[系统提示：当前模型无法直接查看图片`、
   `[用户粘贴的图片` 开头的自动注入提示块会被跳过。
 - **跳转**：会话用 `data-chat-anchor-key={conversationContextKey(definitionKind, id)}` 锚定
@@ -169,7 +176,9 @@ dsh-msgrail/
 
 ## 验证
 
-- `node --check` 对 `lib/client.js`、`lib/index.js`、`scripts/patch-layout.mjs` 全部通过。
+- `node --check` 对 `lib/client.js`、`lib/index.js`、`scripts/patch-layout.mjs` 全部通过；
+  `node scripts/smoke-test-client.mjs` 在 shim 里加载真实 bundle 并验证注入的会话动作
+  （history RPC 分页/信封、守卫、快照读取）。
 - 安装副本：`node -e "console.log(require('<安装路径>/package.json').exports['./client'])"`
   输出 `./lib/client.js`。
 - **JSON/BOM 陷阱**：`package.json` 必须是 **UTF-8 无 BOM**（harness 用 `JSON.parse` 解析，
@@ -202,9 +211,16 @@ dsh-msgrail/
 
 ## 兼容性与限制
 
-- 面向 rc.6 web profile；槽位名、会话服务 API 与布局内部实现均属私有，后续版本可能变化。
+- 已在 **rc.7/rc.8** web profile（当前 `dsh web` 版本线）验证。分页历史 RPC
+  （`session.history({ beforeSeq, maxMessages })`）在 Session 类上**仍然存在**——它只是
+  在会话面上被标为类型 `private`，并非被移除——因此轨道直接翻完整日志（正是当初让
+  "未加载的消息也显示"生效的方案）。若后续版本真的移除它，bundle 的快照 + `loadOlder()`
+  回退会自动接管（有界遍历、先等窗口打开、实时更新时重跑）。
+  槽位名、会话服务 API 与布局内部实现仍属私有，后续版本可能变化。
 - 需要主布局补丁（自带幂等重打脚本）。
-- 轨道固定 44px 宽（不支持折叠/调宽）；只显示当前会话中你发送的消息。
+- 轨道固定 44px 宽（不支持折叠/调宽）；轨道索引当前会话中你发送的**全部**消息（RPC 遍历
+  上限 300 页 × 200 事件；回退遍历约 250 根横线 / 50 页），点击横线时若消息在已加载窗口
+  之外会按需加载更早消息；只显示当前会话中你发送的消息。
 
 ## 许可证
 

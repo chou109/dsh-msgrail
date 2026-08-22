@@ -45,7 +45,7 @@
 
 ## Manual deployment
 
-Requires: DeepSeek Harness web profile (`dsh web`), rc.6 line. No build toolchain needed.
+Requires: DeepSeek Harness web profile (`dsh web`), rc.7/rc.8 line. No build toolchain needed.
 
 1. **Patch the host layout** (one-time; re-run after every harness update):
 
@@ -104,7 +104,7 @@ The AI section below contains the full deployment, verification and debugging in
 ## Mission
 
 Deploy the `dsh-msgrail` plugin for a DeepSeek Harness **web** profile (`dsh web`,
-rc.6 line). The deliverable is a `shell.history` grid column in the host layout plus a
+rc.7/rc.8 line). The deliverable is a `shell.history` grid column in the host layout plus a
 client bundle that renders a **narrow message rail** — one bar per user-sent message of the
 current conversation, with hover previews and click-to-jump.
 
@@ -140,13 +140,24 @@ dsh-msgrail/
   (removed automatically on unload via the loader's style-tag tracking). The hovered bar's
   preview is a `position: fixed` card measured at runtime and clamped inside the viewport
   (flip left on right-edge overflow, shift up on bottom overflow).
-- **Message data — full history, your messages only**: the rail pages through
-  `session.history({ beforeSeq, maxMessages: 200 })` (via `ctx.sessions.binding(id)?.session`)
-  until `hasMore` is false, and renders one bar per `user/message` event whose
-  `surfaceOp === "append"` **and** `data.source.kind === "user"` (assistant replies,
-  steering, context injections and commands are skipped — the conversation UI's own
-  discriminators), ordered by `event.seq`. Live updates come from `session.subscribe` → a
-  debounced (250ms) tail refetch merged by `seq`.
+- **Message data — full history, your messages only**: the rail pages the
+  **whole session log itself** via the paginated history RPC
+  (`session.history({ beforeSeq, maxMessages: 200 })` through
+  `ctx.sessions.binding(id)?.session`) until `hasMore` is false, and renders one
+  bar per `user/message` event whose `surfaceOp === "append"` **and**
+  `data.source.kind === "user"` (assistant replies, steering, context
+  injections and commands are skipped — the conversation UI's own
+  discriminators), ordered by `event.seq`. Because it pages the log RPC
+  directly, the index is independent of the conversation's loaded window:
+  older messages appear even before the chat has loaded them. Live updates
+  come from `session.subscribe` → a debounced (250ms) tail-page refetch merged
+  by `seq`.
+  If a future release drops the (type-private) `session.history` RPC, the
+  bundle falls back to reading the conversation snapshot
+  (`session.getSnapshot()` → the loaded window) and extending it with
+  `session.loadOlder()` while the snapshot reports `hasMore` — waiting for the
+  window to open first and re-running the walk on live updates, so the fallback
+  never silently shows only the loaded messages.
 - **Preview text**: extracted from the content blocks' `text` field; blocks that are
   auto-injected hints (starting with `[图片附件`, `[系统提示：当前模型无法直接查看图片` or
   `[用户粘贴的图片`) are skipped.
@@ -185,7 +196,9 @@ dsh-msgrail/
 
 ## Verification
 
-- `node --check` passes on `lib/client.js`, `lib/index.js`, `scripts/patch-layout.mjs`.
+- `node --check` passes on `lib/client.js`, `lib/index.js`, `scripts/patch-layout.mjs`;
+  `node scripts/smoke-test-client.mjs` loads the real bundle in a shim and exercises the
+  injected session actions (history RPC pagination/envelope, guards, snapshot read).
 - Installed copy: `node -e "console.log(require('<installed>/package.json').exports['./client'])"`
   prints `./lib/client.js`.
 - **JSON/BOM trap**: `package.json` must be **UTF-8 without BOM** (the harness parses it
@@ -221,11 +234,21 @@ dsh-msgrail/
 
 ## Compatibility and limitations
 
-- Targeted at the rc.6 web profile; slot names, the session service API and layout internals
-  are private and may change in later versions.
+- Verified against the rc.7/rc.8 web profile (the current `dsh web` line). The
+  paginated history RPC (`session.history({ beforeSeq, maxMessages })`) is
+  still present on the Session class at runtime — it is type-`private` on the
+  session face, not removed — so the rail pages the full log directly (the
+  same approach that originally made "unloaded messages also appear" work).
+  Should it disappear in a later release, the bundle's snapshot + `loadOlder()`
+  fallback takes over (bounded walk, waits for the window to open, re-runs on
+  live updates). Slot names, the session service API and layout internals
+  remain private and may change in later versions.
 - Requires the host-layout patch (idempotent re-apply script included).
-- Fixed 44px rail (no collapse, no resizing); only the current conversation's user-sent
-  messages are shown.
+- Fixed 44px rail (no collapse, no resizing); the rail indexes every user-sent
+  message of the current conversation (RPC walk capped at 300 pages of 200
+  events; the fallback walk at ~250 user bars / 50 pages), and clicking a bar
+  loads older pages on demand when the message is outside the loaded window.
+- Only the current conversation's user-sent messages are shown.
 
 ## License
 

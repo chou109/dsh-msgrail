@@ -1,255 +1,108 @@
-# MsgRail（dsh-msgrail）
+# MsgRail（dsh-msgrail）— v2.0.0 for DeepSeek Harness 0.2.x
 
-> **MsgRail** is a narrow message rail for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): one thin bar on the left of the chat for each message you sent. Hover to preview, click to jump — older messages load automatically. Full history, live, bilingual.
+> **MsgRail** is a compact **full-history message rail** for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): one thin tick per message **you** sent in the current conversation, docked in the ambient strip below the composer. Hover a tick to preview the message, click to jump into that part of the transcript. The rail indexes the whole history — messages the chat has not loaded yet included.
 >
-> **MsgRail（消息轨道）**——DeepSeek Harness 的窄消息轨道插件：在对话左侧，为每条你发送的消息显示一根细横线。悬停看预览、点击即跳转，更早消息自动加载；全量历史、实时更新、中英双语。
-
-> 中文说明见 [README.zh.md](README.zh.md)
-
-**Repository / 仓库**:
-
-- GitHub: <https://github.com/chou109/dsh-msgrail.git>
-- Gitee (mainland-China mirror — faster there): <https://gitee.com/chill109/dsh-msgrail.git>
+> **MsgRail（消息轨道）**——DeepSeek Harness 的全量消息轨道插件：在当前会话的输入框下方，为你发送的每条消息显示一根细刻度；悬停预览、点击跳转；插件自行分页加载完整历史，聊天窗口还没加载的旧消息也会出现在索引里。
+>
+> 中文文档见 [README.zh.md](README.zh.md)。
 
 ---
 
-## Screenshots
+## Status: 2.0.0 (DSH 0.2.x)
 
-> Demo captures from `dsh web` (light theme), stored in `docs/screenshots/`.
-
-| The message rail | Message example |
+| | |
 |---|---|
-| ![The message rail](docs/screenshots/screenshot.png) | ![Message example](docs/screenshots/screenshot3.png) |
+| Plugin | `dsh-msgrail` 2.0.0 |
+| Harness | DeepSeek Harness **0.2.1-rc.2** (Desktop or `dsh web`) |
+| Layer | Client only (the Host half exists only to create a Loader row) |
+| License | MIT |
+
+### What changed from 1.x
+
+1.x patched `@deepseek-ai/dsh-client-ui-layout` to add a `shell.history` grid column. DSH 0.2 builds every client package as a dynamic bundle, so that patch no longer applies. Version 2 registers through the documented slot API instead:
+
+| 1.x | 2.0.0 |
+|---|---|
+| `shell.history` slot added by a layout patch | `conversation.composer.dock` (additive, session-scoped) |
+| Vertical rail left of the chat | Horizontal tick strip below the composer |
+| Current session guessed from `sessions.current` | `sessionId` supplied by the session-scoped slot |
+| `session.history({beforeSeq})` RPC + snapshot fallback | `ctx.sessions.binding(id).eventSource` + `session.loadOlder()` |
+| Click used `[data-chat-anchor-key]` | Proportional jump inside `[data-conversation-scroll]` |
+| Imported `@deepseek-ai/dsh-client-ui-primitives` | No primitives import; local SVG/CSS only |
+
+DSH 0.2 also ships its own turn rail on the right of the transcript. MsgRail is deliberately different: it indexes **user messages across the full history**, not turns in the loaded window.
 
 ---
-
-# If you are a human, read this
 
 ## What it does
 
-- A **very narrow rail (44px) on the left of the chat** — between the sidebar and the
-  messages, no divider; the rail background joins the conversation area.
-- One **thin horizontal bar per message YOU sent** in the current conversation (AI replies,
-  auto-injected context, interrupts and commands are all excluded), densely stacked and
-  **vertically centered** in the rail. No text in the rail — a pure minimap of your prompts.
-- **The whole history is indexed** — the rail fetches the complete conversation history
-  itself, so older messages appear even before they are loaded into the chat window.
-- **Hover a bar** → it grows **longer and bolder**, and an attached **preview card** shows
-  your exact message text + time, auto-positioned inside the viewport (auto-injected hint
-  blocks, such as the paste-image instructions, are hidden). **Click a bar** → the
-  conversation scrolls to that message; older messages are loaded automatically first if
-  they are not yet in the chat window.
-- **Scrolls when overflowing** — scroll up for older messages; the view stays pinned to the
-  latest as new messages arrive. **Switching sessions** reloads the rail for the new chat.
-- Deliberately minimal: no collapse, no search, no session list, no separate workspace.
+- **Full-history index.** On session switch the rail pages the entire durable log in the background (`loadOlder()`), bounded so a pathological log cannot stall the UI, then keeps the tail live through the session event subscription.
+- **Hover preview.** Role, relative time and up to six lines of the message, clamped inside the viewport.
+- **Click to jump.** Scrolls the transcript toward the message's position in the history. Jumping is *approximate*: DSH 0.2 removed the stable per-message DOM anchors, so the rail maps the tick's ordinal onto the transcript scroll range.
+- **Live and localized.** New messages appear as the session grows; UI copy is registered through `ctx.locale` (zh + en).
+- **Theme-native.** Uses `--dsw-alias-*` tokens only.
 
-## Manual deployment
+## Install
 
-Requires: DeepSeek Harness web profile (`dsh web`), rc.7/rc.8 line. No build toolchain needed.
+### 1. Plugin Manager (Desktop)
 
-1. **Patch the host layout** (one-time; re-run after every harness update):
+The package is a bundle (`dsh.bundle.patch` → `cordis.patch.yml`). Point the Plugin Manager's “install from folder” at this directory and enable `dsh-msgrail`.
 
-   ```bash
-   node scripts/patch-layout.mjs
-   ```
+### 2. CLI
 
-   The script adds a `shell.history` grid column to `@deepseek-ai/dsh-client-ui-layout`
-   (sized by `var(--dsh-history-width)`, default `0px`, so an uninstalled plugin costs no
-   space). It is idempotent and reports loudly if an anchor no longer matches. The layout
-   bundle is resolved from `$DSH_HOME` (falling back to `~/.dsh`); pass the path explicitly
-   (`node scripts/patch-layout.mjs <path>`) for non-standard layouts.
+```bash
+dsh plugin --profile <profile> add /absolute/path/to/dsh-msgrail
+```
 
-2. **Copy the plugin into the profile's node_modules**:
+### 3. Profile patch (manual)
 
-   ```bash
-   cp -r dsh-msgrail ~/.dsh/profiles/node_modules/
-   # or on Windows PowerShell:
-   Copy-Item -Recurse dsh-msgrail "$env:USERPROFILE\.dsh\profiles\node_modules\"
-   ```
+Install/link the package into the profile's `node_modules`, then add to `cordis.patch.yml`:
 
-3. **Register the plugin** in `~/.dsh/profiles/web/cordis.patch.yml` (append):
+```yaml
+- insert:
+    - id: msgrail
+      name: 'dsh-msgrail'
+```
 
-   ```yaml
-   - insert:
-       - id: msgrail
-         name: 'dsh-msgrail'
-   ```
+Reload the page after installation. Nothing else is patched.
 
-4. **Restart the harness** (`dsh web`). The rail appears on the left of the chat.
+## Verify
 
-## How to let an AI deploy it
+1. Open a conversation with at least one message from you.
+2. A thin strip with one tick per message appears directly below the composer; the count is shown at the right.
+3. Hover a tick → preview card; click a tick → transcript scrolls.
+4. Switch sessions → the strip rebuilds for the new session.
+5. Settings → General → Locale switch (zh/en) updates the preview labels.
 
-Tell your AI agent:
+## Limitations
 
-> Please deploy the MsgRail plugin from https://github.com/chou109/dsh-msgrail.git
-> (or the Gitee mirror, faster in mainland China: https://gitee.com/chill109/dsh-msgrail.git)
-> to my DeepSeek Harness web profile. Follow the "If you are an AI, read this" section of the
-> README exactly.
-
-The AI section below contains the full deployment, verification and debugging instructions.
+- **Approximate jumps.** Exact per-message scrolling needs a stable anchor that the 0.2 conversation no longer exposes to plugins.
+- **Bounded paging.** The initial walk stops after 80 `loadOlder()` pages; a session longer than that keeps the newest ~80 pages indexed.
+- **Client-only.** No agent tools, no host routes, no configuration.
 
 ## Uninstall
 
-1. Remove the `msgrail` entry from `~/.dsh/profiles/web/cordis.patch.yml`.
-2. Delete `~/.dsh/profiles/node_modules/dsh-msgrail/`.
-3. (Optional) revert the layout patch by re-installing/upgrading
-   `@deepseek-ai/dsh-client-ui-layout` (the column disappears automatically once the
-   plugin's stylesheet is gone, so this is optional).
-4. Restart `dsh web`.
-
----
-
-# If you are an AI, read this
-
-## Mission
-
-Deploy the `dsh-msgrail` plugin for a DeepSeek Harness **web** profile (`dsh web`,
-rc.7/rc.8 line). The deliverable is a `shell.history` grid column in the host layout plus a
-client bundle that renders a **narrow message rail** — one bar per user-sent message of the
-current conversation, with hover previews and click-to-jump.
+Remove the `msgrail` row (Plugin Manager → disable, or delete the `insert` block) and reload.
 
 ## Repository layout
 
 ```
-dsh-msgrail/
-├── package.json              # plugin manifest: dsh.client declaration + exports["./client"]
-├── lib/
-│   ├── index.js              # minimal cordis host half (keeps the Loader entry valid)
-│   └── client.js             # the browser bundle (hand-written, follows the client-bundle contract)
-├── scripts/
-│   └── patch-layout.mjs      # idempotent patch for @deepseek-ai/dsh-client-ui-layout
-├── README.md / README.zh.md
-└── LICENSE (MIT)
+lib/index.js    Host half: minimal Loader row (client discovery needs it)
+lib/client.js   Browser bundle: rail component, styles, locale, data path
+package.json    dsh.bundle.patch + dsh.client declaration
+cordis.patch.yml
 ```
 
-## How the pieces fit
+## Development
 
-- **Client discovery**: the harness's client-modules scans enabled Loader entries for
-  packages declaring `dsh.client`, resolves `exports["./client"]`, hashes the bundle, serves
-  it at `/plugins/<id>/client.js` and injects it into the browser boot graph. The bundle
-  registers via `window.__ModuleLoader__.load({ id, factory })`; the factory receives the
-  shell's `require` (react, react/jsx-runtime, @deepseek-ai/dsh-client-ui-primitives).
-- **Layout column**: `scripts/patch-layout.mjs` edits
-  `@deepseek-ai/dsh-client-ui-layout/lib/client.js` (three edits): the grid becomes
-  `sidebar | var(--dsh-history-width, 0px) | center | details`; a
-  `<div class="dsh-layout-historyCol">` renders the `shell.history` slot between the sidebar
-  and the conversation; `"shell.history": { kind: "single", scope: "root" }` is declared.
-  The idempotency marker is `dsh-session-history (patched)` (predates the rename — do NOT
-  change it; the already-patched host layout carries it).
-- **Rail width**: the bundle's stylesheet declares `:root { --dsh-history-width: 44px }`
-  (removed automatically on unload via the loader's style-tag tracking). The hovered bar's
-  preview is a `position: fixed` card measured at runtime and clamped inside the viewport
-  (flip left on right-edge overflow, shift up on bottom overflow).
-- **Message data — full history, your messages only**: the rail pages the
-  **whole session log itself** via the paginated history RPC
-  (`session.history({ beforeSeq, maxMessages: 200 })` through
-  `ctx.sessions.binding(id)?.session`) until `hasMore` is false, and renders one
-  bar per `user/message` event whose `surfaceOp === "append"` **and**
-  `data.source.kind === "user"` (assistant replies, steering, context
-  injections and commands are skipped — the conversation UI's own
-  discriminators), ordered by `event.seq`. Because it pages the log RPC
-  directly, the index is independent of the conversation's loaded window:
-  older messages appear even before the chat has loaded them. Live updates
-  come from `session.subscribe` → a debounced (250ms) tail-page refetch merged
-  by `seq`.
-  If a future release drops the (type-private) `session.history` RPC, the
-  bundle falls back to reading the conversation snapshot
-  (`session.getSnapshot()` → the loaded window) and extending it with
-  `session.loadOlder()` while the snapshot reports `hasMore` — waiting for the
-  window to open first and re-running the walk on live updates, so the fallback
-  never silently shows only the loaded messages.
-- **Preview text**: extracted from the content blocks' `text` field; blocks that are
-  auto-injected hints (starting with `[图片附件`, `[系统提示：当前模型无法直接查看图片` or
-  `[用户粘贴的图片`) are skipped.
-- **Jump**: the conversation anchors rows with
-  `data-chat-anchor-key={conversationContextKey(definitionKind, id)}` — the user definition
-  is `input-message` (id = message id), so the key is `{13}:input-message{id}`. If the
-  anchor is absent (message not yet loaded), the rail calls `session.loadOlder()` repeatedly
-  (cap 60 pages) until the anchor appears, then `scrollIntoView({behavior:"smooth", block:"center"})`.
+The browser half is plain ES5-compatible JavaScript using
+`window.__ModuleLoader__.load({ id, factory })`. It requires only `react` and the
+session/locale/slot services listed in `inject`. Syntax check with:
 
-## Deployment steps (exact)
-
-1. **Patch the layout** (from the repo root):
-
-   ```bash
-   node scripts/patch-layout.mjs
-   # the default target is resolved from $DSH_HOME (~/.dsh); or pass an explicit path:
-   node scripts/patch-layout.mjs "<path>/node_modules/@deepseek-ai/dsh-client-ui-layout/lib/client.js"
-   ```
-
-2. **Install the package**:
-
-   ```bash
-   echo ${DSH_HOME:-$HOME/.dsh}   # e.g. C:\Users\<you>\.dsh on Windows
-   cp -r dsh-msgrail "$DSH_HOME/profiles/node_modules/"   # the package folder itself
-   ```
-
-3. **Register the Loader entry** in `"$DSH_HOME/profiles/web/cordis.patch.yml"`:
-
-   ```yaml
-   - insert:
-       - id: msgrail
-         name: 'dsh-msgrail'
-   ```
-
-4. **Restart** `dsh web`.
-
-## Verification
-
-- `node --check` passes on `lib/client.js`, `lib/index.js`, `scripts/patch-layout.mjs`;
-  `node scripts/smoke-test-client.mjs` loads the real bundle in a shim and exercises the
-  injected session actions (history RPC pagination/envelope, guards, snapshot read).
-- Installed copy: `node -e "console.log(require('<installed>/package.json').exports['./client'])"`
-  prints `./lib/client.js`.
-- **JSON/BOM trap**: `package.json` must be **UTF-8 without BOM** (the harness parses it
-  with `JSON.parse`; a BOM aborts startup with `Unexpected token '﻿'`). Check:
-  `grep -rl $'\xef\xbb\xbf' "$DSH_HOME" --exclude-dir=node_modules`; strip:
-  `sed -i '1s/^\xEF\xBB\xBF//' package.json`.
-- After restart: the rail appears left of the chat; hovering shows a preview (clamped to the
-  viewport), clicking jumps (auto-loading older pages when needed), and switching sessions
-  reloads the rail.
-
-## Debugging
-
-- **Column missing**: restart needed? `msgrail` in `cordis.patch.yml`? installed
-  `package.json` declares `dsh.client` + `exports["./client"]`? layout patch marker present?
-  browser console errors on `/plugins/dsh-msgrail/client.js`?
-- **Startup crash `Unexpected token '﻿'`**: BOM in `package.json` (strip it).
-- **Bars ≠ your messages**: the filters are `surfaceOp === "append"` and
-  `data.source.kind === "user"`; injected/assistant/steer rows are skipped by design.
-- **Jump does nothing**: the target may be outside the loaded window; the rail calls
-  `loadOlder()` (max 60 pages); if the session has no more history the anchor cannot exist.
-- **Harness upgrade drift**: slot names (`shell.history`), `ctx.sessions.binding`, the
-  history RPC and the chat-node key formula are internal APIs — re-run
-  `scripts/patch-layout.mjs` and re-check after upgrades.
-
-## Operations
-
-- **Version bump**: edit `version` in `package.json`, re-copy the package folder to the
-  profile's node_modules (both copies byte-identical, BOM-free). Never rewrite JSON via
-  PowerShell `Set-Content -Encoding UTF8` (writes a BOM on Windows PowerShell).
-- **Harness update**: re-run `scripts/patch-layout.mjs`, restart.
-
----
-
-## Compatibility and limitations
-
-- Verified against the rc.7/rc.8 web profile (the current `dsh web` line). The
-  paginated history RPC (`session.history({ beforeSeq, maxMessages })`) is
-  still present on the Session class at runtime — it is type-`private` on the
-  session face, not removed — so the rail pages the full log directly (the
-  same approach that originally made "unloaded messages also appear" work).
-  Should it disappear in a later release, the bundle's snapshot + `loadOlder()`
-  fallback takes over (bounded walk, waits for the window to open, re-runs on
-  live updates). Slot names, the session service API and layout internals
-  remain private and may change in later versions.
-- Requires the host-layout patch (idempotent re-apply script included).
-- Fixed 44px rail (no collapse, no resizing); the rail indexes every user-sent
-  message of the current conversation (RPC walk capped at 300 pages of 200
-  events; the fallback walk at ~250 user bars / 50 pages), and clicking a bar
-  loads older pages on demand when the message is outside the loaded window.
-- Only the current conversation's user-sent messages are shown.
+```bash
+node --check lib/client.js
+```
 
 ## License
 
-[MIT](LICENSE)
+MIT.

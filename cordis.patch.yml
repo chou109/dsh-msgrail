@@ -1,0 +1,6 @@
+# dsh-msgrail bundle patch (DSH 0.2.x).
+# The client half registers itself into `conversation.composer.dock`; this row
+# only has to exist for client discovery to serve `lib/client.js`.
+- insert:
+    - id: msgrail
+      name: 'dsh-msgrail'
